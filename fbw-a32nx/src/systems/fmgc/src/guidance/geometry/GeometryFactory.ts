@@ -321,7 +321,7 @@ function geometryLegFromFlightPlanLeg(
         return new RFLeg(prevWaypoint, waypoint, center.location, metadata, SegmentType.Departure);
       }
 
-      return new TFLeg(prevWaypoint, waypoint, metadata, SegmentType.Departure);
+      return new TFLeg(prevWaypoint, waypoint, metadata, segmentTypeFromFlightPlanLeg(flightPlanLeg));
     }
     case LegType.VM: {
       return new VMLeg(trueCourse, metadata, SegmentType.Departure);
@@ -348,6 +348,43 @@ function doGenerateTransitionsForLeg(leg: Leg, legIndex: number, plan: BaseFligh
   }
 
   return true;
+}
+
+function segmentTypeFromFlightPlanLeg(flightPlanLeg: FlightPlanLeg): SegmentType {
+  const { segment } = flightPlanLeg;
+  const plan = segment.flightPlan;
+
+  if (segment === plan.originSegment) {
+    return SegmentType.Origin;
+  }
+  if (
+    segment === plan.departureRunwayTransitionSegment ||
+    segment === plan.departureSegment ||
+    segment === plan.departureEnrouteTransitionSegment
+  ) {
+    return SegmentType.Departure;
+  }
+  if (segment === plan.enrouteSegment) {
+    return SegmentType.Enroute;
+  }
+  if (
+    segment === plan.arrivalEnrouteTransitionSegment ||
+    segment === plan.arrivalSegment ||
+    segment === plan.arrivalRunwayTransitionSegment
+  ) {
+    return SegmentType.Arrival;
+  }
+  if (segment === plan.approachViaSegment || segment === plan.approachSegment) {
+    return SegmentType.Approach;
+  }
+  if (segment === plan.destinationSegment) {
+    return SegmentType.Destination;
+  }
+  if (segment === plan.missedApproachSegment) {
+    return SegmentType.Missed;
+  }
+
+  return SegmentType.Empty;
 }
 
 function isXiIfXf(

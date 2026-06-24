@@ -5131,6 +5131,7 @@ export abstract class FMCMainDisplay implements FmsDataInterface, FmsDisplayInte
       long: adirLong.value,
     };
 
+    await SimVar.SetSimVarValue('L:A32NX_FMS_LATERAL_OFFSET_NM', 'number', 0);
     await this.flightPlanService.directToWaypoint(ppos, trueTrack.value, waypoint);
   }
 
@@ -5153,6 +5154,7 @@ export abstract class FMCMainDisplay implements FmsDataInterface, FmsDisplayInte
       long: adirLong.value,
     };
 
+    await SimVar.SetSimVarValue('L:A32NX_FMS_LATERAL_OFFSET_NM', 'number', 0);
     await this.flightPlanService.directToLeg(ppos, trueTrack.value, legIndex);
   }
 

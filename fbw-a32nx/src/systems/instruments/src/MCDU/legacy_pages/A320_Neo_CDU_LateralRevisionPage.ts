@@ -38,6 +38,11 @@ export class CDULateralRevisionPage {
 
     const isPpos = leg === undefined || (legIndexFP === 0 && leg !== targetPlan.originLeg);
     const isFrom = legIndexFP === targetPlan.fromLegIndex && isActivePlan && !inAlternate;
+    const offsetReferenceLegIndex = isPpos ? targetPlan.fromLegIndex : legIndexFP;
+    const isOffsetInApproach =
+      targetPlan.approachSegment.legCount > 0 &&
+      offsetReferenceLegIndex !== undefined &&
+      offsetReferenceLegIndex >= targetPlan.firstApproachLegIndex;
     const legWaypoint = !isPpos ? leg.definition.waypoint : null;
     const departure = targetPlan.originAirport;
     const isDeparture =
@@ -100,7 +105,7 @@ export class CDULateralRevisionPage {
     }
 
     let offsetCell = '';
-    if (isActivePlan && !inAlternate && (isPpos || isFrom)) {
+    if (isActivePlan && !inAlternate && (isPpos || isFrom) && !isOffsetInApproach) {
       const activeOffset = SimVar.GetSimVarValue('L:A32NX_FMS_LATERAL_OFFSET_NM', 'number') || 0;
       offsetCell = activeOffset
         ? `<${activeOffset < 0 ? 'L' : 'R'}${Math.abs(activeOffset).toFixed(0)}[color]cyan`

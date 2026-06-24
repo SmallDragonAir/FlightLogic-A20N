@@ -6,7 +6,7 @@
 
 import { GuidanceParameters } from '@fmgc/guidance/ControlLaws';
 import { Fix, MathUtils, WaypointDescriptor } from '@flybywiresim/fbw-sdk';
-import { SegmentType } from '@fmgc/wtsdk';
+import { SegmentType } from '@fmgc/flightplanning/FlightPlanSegment';
 import { Coordinates } from '@fmgc/flightplanning/data/geo';
 import { XFLeg } from '@fmgc/guidance/lnav/legs/XF';
 import { courseToFixDistanceToGo, fixToFixGuidance } from '@fmgc/guidance/lnav/CommonGeometry';
@@ -54,6 +54,14 @@ export class TFLeg extends XFLeg {
   }
 
   private get lateralOffsetNm(): NauticalMiles {
+    if (
+      this.segment === SegmentType.Approach ||
+      this.segment === SegmentType.Destination ||
+      this.segment === SegmentType.Missed
+    ) {
+      return 0;
+    }
+
     return SimVar.GetSimVarValue('L:A32NX_FMS_LATERAL_OFFSET_NM', 'number') || 0;
   }
 
