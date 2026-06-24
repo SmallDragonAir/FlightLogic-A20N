@@ -11,11 +11,12 @@ import { CDUFixInfoPage } from './A320_Neo_CDU_FixInfoPage';
 import { CDUFlightPlanPage } from './A320_Neo_CDU_FlightPlanPage';
 import { CDUHoldAtPage } from './A320_Neo_CDU_HoldAtPage';
 import { CDUInitPage } from './A320_Neo_CDU_InitPage';
-import { NXFictionalMessages } from '../messages/NXSystemMessages';
+import { NXFictionalMessages, NXSystemMessages } from '../messages/NXSystemMessages';
 import { LegacyFmsPageInterface } from '../legacy/LegacyFmsPageInterface';
 import { FlightPlanIndex } from '@fmgc/flightplanning/FlightPlanManager';
 import { FlightPlanLeg } from '@fmgc/flightplanning/legs/FlightPlanLeg';
 import { isAirport, isRunway } from '@flybywiresim/fbw-sdk';
+import { Keypad } from '../legacy/A320_Neo_CDU_Keypad';
 
 export class CDULateralRevisionPage {
   /**
@@ -100,7 +101,40 @@ export class CDULateralRevisionPage {
 
     let offsetCell = '';
     if (isDeparture || isWaypoint) {
-      offsetCell = '<OFFSET[color]inop';
+      const activeOffset = SimVar.GetSimVarValue('L:A32NX_FMS_LATERAL_OFFSET_NM', 'number') || 0;
+      offsetCell = activeOffset
+        ? `<${activeOffset < 0 ? 'L' : 'R'}${Math.abs(activeOffset).toFixed(1)}[color]cyan`
+        : '<OFFSET[color]cyan';
+
+      mcdu.onLeftInput[1] = (value, scratchpadCallback) => {
+        if (value === Keypad.clrValue) {
+          SimVar.SetSimVarValue('L:A32NX_FMS_LATERAL_OFFSET_NM', 'number', 0);
+          CDULateralRevisionPage.ShowPage(mcdu, leg, legIndexFP, forPlan, inAlternate);
+          return;
+        }
+
+        const match = /^([LR])\s?(\d{1,2}(?:\.\d)?)$/i.exec(value.trim());
+        if (!match) {
+          mcdu.setScratchpadMessage(NXSystemMessages.formatError);
+          scratchpadCallback();
+          return;
+        }
+
+        const direction = match[1].toUpperCase();
+        const distance = Number.parseFloat(match[2]);
+        if (!Number.isFinite(distance) || distance <= 0 || distance > 99) {
+          mcdu.setScratchpadMessage(NXSystemMessages.entryOutOfRange);
+          scratchpadCallback();
+          return;
+        }
+
+        SimVar.SetSimVarValue(
+          'L:A32NX_FMS_LATERAL_OFFSET_NM',
+          'number',
+          direction === 'L' ? -distance : distance,
+        );
+        CDULateralRevisionPage.ShowPage(mcdu, leg, legIndexFP, forPlan, inAlternate);
+      };
     }
 
     let nextWptLabel = '';

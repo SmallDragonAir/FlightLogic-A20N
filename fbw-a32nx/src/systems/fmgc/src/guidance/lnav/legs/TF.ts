@@ -11,7 +11,7 @@ import { Coordinates } from '@fmgc/flightplanning/data/geo';
 import { XFLeg } from '@fmgc/guidance/lnav/legs/XF';
 import { courseToFixDistanceToGo, fixToFixGuidance } from '@fmgc/guidance/lnav/CommonGeometry';
 import { LnavConfig } from '@fmgc/guidance/LnavConfig';
-import { bearingTo, distanceTo } from 'msfs-geo';
+import { bearingTo, distanceTo, placeBearingDistance } from 'msfs-geo';
 import { LegMetadata } from '@fmgc/guidance/lnav/legs/index';
 import { PathVector, PathVectorType } from '../PathVector';
 
@@ -53,13 +53,26 @@ export class TFLeg extends XFLeg {
     return this.computedPath;
   }
 
+  private get lateralOffsetNm(): NauticalMiles {
+    return SimVar.GetSimVarValue('L:A32NX_FMS_LATERAL_OFFSET_NM', 'number') || 0;
+  }
+
+  private offsetPoint(point: Coordinates | undefined): Coordinates | undefined {
+    const offset = this.lateralOffsetNm;
+    if (!point || !offset) {
+      return point;
+    }
+
+    return placeBearingDistance(point, MathUtils.normalise360(this.course + (offset > 0 ? 90 : -90)), Math.abs(offset));
+  }
+
   getPathStartPoint(): Coordinates | undefined {
     return this.inboundGuidable?.isComputed ? this.inboundGuidable.getPathEndPoint() : this.from.location;
   }
 
   recomputeWithParameters(_isActive: boolean, _tas: Knots, _gs: Knots, _ppos: Coordinates, _trueTrack: DegreesTrue) {
-    const startPoint = this.getPathStartPoint();
-    const endPoint = this.getPathEndPoint();
+    const startPoint = this.offsetPoint(this.getPathStartPoint());
+    const endPoint = this.offsetPoint(this.getPathEndPoint());
 
     this.computedPath.length = 0;
 
@@ -89,7 +102,7 @@ export class TFLeg extends XFLeg {
   }
 
   getGuidanceParameters(ppos: Coordinates, trueTrack: Degrees): GuidanceParameters | null {
-    return fixToFixGuidance(ppos, trueTrack, this.from.location, this.to.location);
+    return fixToFixGuidance(ppos, trueTrack, this.offsetPoint(this.from.location), this.offsetPoint(this.to.location));
   }
 
   getNominalRollAngle(_gs: Knots): Degrees {
@@ -97,7 +110,7 @@ export class TFLeg extends XFLeg {
   }
 
   getDistanceToGo(ppos: LatLongData): NauticalMiles {
-    return courseToFixDistanceToGo(ppos, this.course, this.getPathEndPoint());
+    return courseToFixDistanceToGo(ppos, this.course, this.offsetPoint(this.getPathEndPoint()));
   }
 
   isAbeam(ppos: LatLongAlt): boolean {
