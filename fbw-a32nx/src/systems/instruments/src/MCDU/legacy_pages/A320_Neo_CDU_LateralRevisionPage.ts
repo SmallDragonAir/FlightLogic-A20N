@@ -100,29 +100,30 @@ export class CDULateralRevisionPage {
     }
 
     let offsetCell = '';
-    if (isDeparture || isWaypoint) {
+    if (isActivePlan && !inAlternate && (isPpos || isFrom)) {
       const activeOffset = SimVar.GetSimVarValue('L:A32NX_FMS_LATERAL_OFFSET_NM', 'number') || 0;
       offsetCell = activeOffset
-        ? `<${activeOffset < 0 ? 'L' : 'R'}${Math.abs(activeOffset).toFixed(1)}[color]cyan`
+        ? `<${activeOffset < 0 ? 'L' : 'R'}${Math.abs(activeOffset).toFixed(0)}[color]cyan`
         : '<OFFSET[color]cyan';
 
       mcdu.onLeftInput[1] = (value, scratchpadCallback) => {
-        if (value === Keypad.clrValue) {
+        const normalizedValue = value.trim().toUpperCase();
+        if (value === Keypad.clrValue || normalizedValue === '0' || normalizedValue === 'L0' || normalizedValue === 'R0') {
           SimVar.SetSimVarValue('L:A32NX_FMS_LATERAL_OFFSET_NM', 'number', 0);
           CDULateralRevisionPage.ShowPage(mcdu, leg, legIndexFP, forPlan, inAlternate);
           return;
         }
 
-        const match = /^([LR])\s?(\d{1,2}(?:\.\d)?)$/i.exec(value.trim());
+        const match = /^(?:([LR])\s?(\d{1,2})|(\d{1,2})\s?([LR]))$/.exec(normalizedValue);
         if (!match) {
           mcdu.setScratchpadMessage(NXSystemMessages.formatError);
           scratchpadCallback();
           return;
         }
 
-        const direction = match[1].toUpperCase();
-        const distance = Number.parseFloat(match[2]);
-        if (!Number.isFinite(distance) || distance <= 0 || distance > 99) {
+        const direction = match[1] ?? match[4];
+        const distance = Number.parseInt(match[2] ?? match[3], 10);
+        if (!Number.isFinite(distance) || distance < 1 || distance > 50) {
           mcdu.setScratchpadMessage(NXSystemMessages.entryOutOfRange);
           scratchpadCallback();
           return;
