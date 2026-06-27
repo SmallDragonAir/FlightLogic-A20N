@@ -1,12 +1,12 @@
 {
-  "creator": "FlyByWire Simulations",
+  "creator": "Flight Logic",
   "release_notes": {
     "neutral": {
       "LastUpdate": "",
       "OlderHistory": ""
     }
   },
-  "title": "A32NX",
+  "title": "Flight Logic A320neo",
   "dependencies": [
     {
       "package_version": "0.1.129",
